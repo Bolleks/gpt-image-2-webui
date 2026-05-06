@@ -3,7 +3,7 @@ import { unlink } from 'fs/promises';
 import { db } from '@/lib/db';
 import { settings } from '@/lib/db/schema';
 
-const UPLOAD_DIR = join(process.cwd(), 'data', 'uploads');
+const UPLOAD_DIR = process.env.UPLOAD_PATH || join(process.cwd(), 'data', 'uploads');
 
 export class KieApiError extends Error {
   constructor(

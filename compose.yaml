@@ -12,6 +12,7 @@ services:
       - HOSTNAME=0.0.0.0
       - DATABASE_URL=file:/data/app.db
       - STORAGE_PATH=/data/images
+      - UPLOAD_PATH=/data/uploads
     volumes:
       - app-data:/data
     healthcheck:

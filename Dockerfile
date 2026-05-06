@@ -64,6 +64,7 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_URL=file:/data/app.db
 ENV STORAGE_PATH=/data/images
+ENV UPLOAD_PATH=/data/uploads
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
