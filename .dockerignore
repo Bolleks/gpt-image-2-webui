@@ -1,0 +1,15 @@
+node_modules
+.next
+.env
+.env.local
+.env.*.local
+*.md
+.git
+.gitignore
+docs/
+KIE-DOCS/
+.superpowers/
+.vscode/
+.idea/
+*.log
+data/
