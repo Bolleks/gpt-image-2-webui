@@ -1,29 +1,13 @@
 'use client';
 
-import { Skeleton } from '@/components/ui/skeleton';
-import { ImageIcon } from 'lucide-react';
-
 interface PreviewAreaProps {
   imageUrl: string | null;
   status: string | null;
 }
 
-export function PreviewArea({ imageUrl, status }: PreviewAreaProps) {
-  if (status === 'generating' || status === 'waiting' || status === 'queuing') {
-    return (
-      <div className="glass-card p-4">
-        <Skeleton className="w-full aspect-square rounded-xl bg-white/5" />
-      </div>
-    );
-  }
-
+export function PreviewArea({ imageUrl }: PreviewAreaProps) {
   if (!imageUrl) {
-    return (
-      <div className="glass-card p-8 flex flex-col items-center justify-center min-h-[200px]">
-        <ImageIcon className="w-12 h-12 text-white/10 mb-3" />
-        <p className="text-sm text-white/20">Здесь появится ваше изображение</p>
-      </div>
-    );
+    return null;
   }
 
   return (
