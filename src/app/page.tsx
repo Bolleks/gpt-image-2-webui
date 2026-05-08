@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { PromptInput } from '@/components/generation/PromptInput';
 import { AspectRatioSelector } from '@/components/generation/AspectRatioSelector';
@@ -42,12 +42,9 @@ function GenerationPageInner() {
     if (urlResolution) setResolution(urlResolution);
   }, [searchParams]);
 
-  const uploadFilesRef = useRef(uploadFiles);
-  uploadFilesRef.current = uploadFiles;
-
   useEffect(() => {
     return () => {
-      uploadFilesRef.current.forEach((file) => URL.revokeObjectURL(file.previewUrl));
+      uploadFiles.forEach((file) => URL.revokeObjectURL(file.previewUrl));
     };
   }, []);
 

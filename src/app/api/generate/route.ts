@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { settings, tasks } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { KieApiClient, KieApiError, deleteUploadedFile } from '@/lib/services/KieApiClient';
+import { KieApiClient, KieApiError } from '@/lib/services/KieApiClient';
 import { AspectRatio, Resolution } from '@/lib/types';
 
 const VALID_ASPECT_RATIOS: AspectRatio[] = ['auto', '1:1', '9:16', '16:9', '4:3', '3:4'];
@@ -88,11 +88,6 @@ export async function POST(request: NextRequest) {
       inputUrls: inputUrls?.length > 0 ? JSON.stringify(inputUrls) : null,
       status: 'waiting',
     });
-
-    // Clean up uploaded files after successful task creation
-    if (inputUrls?.length > 0) {
-      await Promise.all(inputUrls.map((url: string) => deleteUploadedFile(url)));
-    }
 
     return NextResponse.json({ taskId, status: 'waiting' });
   } catch (error) {

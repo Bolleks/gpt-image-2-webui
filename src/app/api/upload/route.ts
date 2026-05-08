@@ -1,19 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { randomUUID } from 'crypto';
+import { db } from '@/lib/db';
+import { settings } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
-const UPLOAD_DIR = process.env.UPLOAD_PATH || join(process.cwd(), 'data', 'uploads');
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_FILES = 3;
 
-async function ensureUploadDir() {
-  await mkdir(UPLOAD_DIR, { recursive: true });
-}
-
 export async function POST(request: NextRequest) {
   try {
+    const row = await db.query.settings.findFirst({
+      where: eq(settings.id, 'default'),
+    });
+
+    if (!row?.apiKey) {
+      return NextResponse.json(
+        { error: 'API key not configured' },
+        { status: 401 }
+      );
+    }
+
     const formData = await request.formData();
     const files = formData.getAll('files') as File[];
 
@@ -31,7 +37,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await ensureUploadDir();
     const urls: string[] = [];
 
     for (const file of files) {
@@ -49,15 +54,37 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const ext = file.name.split('.').pop() || 'png';
-      const filename = `${randomUUID()}.${ext}`;
-      const filepath = join(UPLOAD_DIR, filename);
+      const kieFormData = new FormData();
+      kieFormData.append('file', file);
+      kieFormData.append('uploadPath', 'images');
 
-      const buffer = Buffer.from(await file.arrayBuffer());
-      await writeFile(filepath, buffer);
+      const kieResponse = await fetch('https://kieai.redpandaai.co/api/file-stream-upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${row.apiKey}`,
+        },
+        body: kieFormData,
+      });
 
-      const baseUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
-      urls.push(`${baseUrl}/api/uploads/${filename}`);
+      if (!kieResponse.ok) {
+        const errorBody = await kieResponse.json().catch(() => ({}));
+        console.error('KIE upload error:', errorBody);
+        return NextResponse.json(
+          { error: 'Failed to upload file to KIE' },
+          { status: 502 }
+        );
+      }
+
+      const kieData = await kieResponse.json();
+
+      if (!kieData?.data?.fileUrl) {
+        return NextResponse.json(
+          { error: 'Invalid response from KIE upload' },
+          { status: 502 }
+        );
+      }
+
+      urls.push(kieData.data.fileUrl);
     }
 
     return NextResponse.json({ urls });

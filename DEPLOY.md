@@ -154,7 +154,6 @@ Coolify автоматически найдет `docker-compose.yml` в корн
 - `/data/app.db` — база данных SQLite
 - `/data/app.db-shm` и `/data/app.db-wal` — WAL-файлы SQLite
 - `/data/images/` — сгенерированные изображения
-- `/data/uploads/` — загруженные файлы
 
 При пересборке или обновлении контейнера эти данные **не теряются**.
 

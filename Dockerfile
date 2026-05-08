@@ -36,7 +36,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Create data directories for SQLite and images
-RUN mkdir -p /data/images /data/uploads && chown -R nextjs:nodejs /data
+RUN mkdir -p /data/images && chown -R nextjs:nodejs /data
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
@@ -64,7 +64,6 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_URL=file:/data/app.db
 ENV STORAGE_PATH=/data/images
-ENV UPLOAD_PATH=/data/uploads
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \

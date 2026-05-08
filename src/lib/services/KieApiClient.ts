@@ -1,9 +1,5 @@
-import { join } from 'path';
-import { unlink } from 'fs/promises';
 import { db } from '@/lib/db';
 import { settings } from '@/lib/db/schema';
-
-const UPLOAD_DIR = process.env.UPLOAD_PATH || join(process.cwd(), 'data', 'uploads');
 
 export class KieApiError extends Error {
   constructor(
@@ -218,20 +214,4 @@ export class KieApiClient {
   }
 }
 
-export async function deleteUploadedFile(url: string): Promise<void> {
-  try {
-    const filename = url.split('/').pop();
-    if (!filename) return;
 
-    const filepath = join(UPLOAD_DIR, filename);
-
-    if (!filepath.startsWith(UPLOAD_DIR)) {
-      console.error('Invalid file path:', filepath);
-      return;
-    }
-
-    await unlink(filepath);
-  } catch (error) {
-    console.error('Failed to delete uploaded file:', error);
-  }
-}
