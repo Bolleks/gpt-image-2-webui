@@ -167,7 +167,7 @@ const WORDLIST = [
   'pledge','pluck','plug','plunge','poem','poet','point','polar',
   'pole','police','pond','pony','pool','popular','portion','position',
   'possible','post','potato','pottery','poverty','powder','power','practice',
-  'praise','predict','prefer','prepare','present','pretty','prevent','recipe',
+  'praise','predict','prefer','prepare','present','pretty','prevent','promise',
   'price','pride','primary','print','prior','prison','private','prize',
   'problem','process','produce','profit','program','project','promote','proof',
   'property','prosper','protect','proud','provide','public','pudding','pull',
@@ -216,7 +216,7 @@ const WORDLIST = [
   'subject','submit','subway','success','such','sudden','suffer','sugar',
   'suggest','suit','summer','sun','sunny','sunset','super','supply',
   'supreme','sure','surface','surge','surprise','surround','survey','suspect',
-  'sport','sustain','swallow','swamp','swap','swarm','swear','sweet',
+  'stampede','sustain','swallow','swamp','swap','swarm','swear','sweet',
   'swim','swing','switch','sword','symbol','symptom','syrup','system',
   'table','tackle','tag','tail','talent','talk','tank','tape',
   'target','task','taste','tattoo','taxi','teach','team','tell',
@@ -250,7 +250,7 @@ const WORDLIST = [
   'whisper','wide','width','wife','wild','will','win','window',
   'wine','wing','wink','winner','winter','wire','wisdom','wise',
   'wish','witness','wolf','woman','wonder','wood','wool','word',
-  'work','subject','world','worry','worth','wrap','wreck','wrestle',
+  'work','scholar','world','worry','worth','wrap','wreck','wrestle',
   'wrist','write','wrong','yard','year','yellow','you','young',
   'youth','zebra','zero','zone','zoo'
 ];
