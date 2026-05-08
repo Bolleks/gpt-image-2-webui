@@ -119,7 +119,7 @@ function GenerationPageInner() {
   };
 
   return (
-    <div className="max-w-[560px] mx-auto space-y-6">
+    <div className="max-w-[840px] mx-auto space-y-6">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-extrabold tracking-tight gradient-text">
           Создай изображение
