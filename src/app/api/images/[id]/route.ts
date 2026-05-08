@@ -1,17 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { tasks } from '@/lib/db/schema';
 import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { ImageDownloader } from '@/lib/services/ImageDownloader';
-import { requireUserId } from '@/lib/auth/session';
+import { getUserIdFromRequest } from '@/lib/auth/session';
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
-    const userId = await requireUserId();
     const { id: taskId } = await params;
 
     const task = await db.query.tasks.findFirst({

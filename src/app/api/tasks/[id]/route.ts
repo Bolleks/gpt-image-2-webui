@@ -1,17 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { settings, tasks } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { KieApiClient } from '@/lib/services/KieApiClient';
-import { requireUserId } from '@/lib/auth/session';
+import { getUserIdFromRequest } from '@/lib/auth/session';
 import fs from 'fs';
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
-    const userId = await requireUserId();
     const { id: taskId } = await params;
 
     const task = await db.query.tasks.findFirst({
@@ -110,10 +112,7 @@ export async function GET(
       failMsg: extra.failMsg as string | null,
       costTime: details.costTime || null,
     });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch task status' },
       { status: 500 }
@@ -122,11 +121,13 @@ export async function GET(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
-    const userId = await requireUserId();
     const { id: taskId } = await params;
 
     const task = await db.query.tasks.findFirst({
@@ -150,10 +151,7 @@ export async function DELETE(
     await db.delete(tasks).where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  } catch {
     return NextResponse.json(
       { error: 'Failed to delete task' },
       { status: 500 }

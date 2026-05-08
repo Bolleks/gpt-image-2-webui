@@ -3,11 +3,13 @@ import { db } from '@/lib/db';
 import { prompts } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
-import { requireUserId } from '@/lib/auth/session';
+import { getUserIdFromRequest } from '@/lib/auth/session';
 
 export async function GET(request: NextRequest) {
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
-    const userId = await requireUserId();
     const category = request.nextUrl.searchParams.get('category');
 
     const rows = category
@@ -24,9 +26,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(rows);
   } catch {
-    if (new Error().message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     return NextResponse.json(
       { error: 'Failed to fetch prompts' },
       { status: 500 }
@@ -35,9 +34,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const userId = await requireUserId();
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  try {
     const body = await request.json();
     const { title, content, category } = body;
 
@@ -66,10 +66,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(row, { status: 201 });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  } catch {
     return NextResponse.json(
       { error: 'Failed to create prompt' },
       { status: 500 }
@@ -78,9 +75,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  try {
-    const userId = await requireUserId();
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  try {
     const body = await request.json();
     const { id, title, content, category } = body;
 
@@ -124,10 +122,7 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json(row);
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  } catch {
     return NextResponse.json(
       { error: 'Failed to update prompt' },
       { status: 500 }
@@ -136,9 +131,10 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  try {
-    const userId = await requireUserId();
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  try {
     const body = await request.json();
     const { id } = body;
 
@@ -163,10 +159,7 @@ export async function DELETE(request: NextRequest) {
     await db.delete(prompts).where(and(eq(prompts.id, id), eq(prompts.userId, userId)));
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  } catch {
     return NextResponse.json(
       { error: 'Failed to delete prompt' },
       { status: 500 }

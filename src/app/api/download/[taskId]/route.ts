@@ -1,20 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { settings, tasks } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { KieApiClient } from '@/lib/services/KieApiClient';
 import { ImageDownloader } from '@/lib/services/ImageDownloader';
-import { requireUserId } from '@/lib/auth/session';
+import { getUserIdFromRequest } from '@/lib/auth/session';
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ taskId: string }> }
 ) {
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const { taskId } = await params;
 
   try {
-    const userId = await requireUserId();
-
     const task = await db.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
     });
@@ -51,14 +52,15 @@ export async function GET(
 }
 
 export async function POST(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ taskId: string }> }
 ) {
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const { taskId } = await params;
 
   try {
-    const userId = await requireUserId();
-
     const row = await db.query.settings.findFirst({
       where: eq(settings.userId, userId),
     });
@@ -106,7 +108,7 @@ export async function POST(
       .where(eq(tasks.id, taskId));
 
     return NextResponse.json({ localPath });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to download image' },
       { status: 500 }

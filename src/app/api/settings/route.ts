@@ -1,16 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { settings } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { KieApiClient, KieApiError } from '@/lib/services/KieApiClient';
-import { requireUserId } from '@/lib/auth/session';
+import { jwtVerify } from 'jose';
 
-export async function GET() {
+async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
+  const token = request.cookies.get('authjs.session-token')?.value
+    ?? request.cookies.get('__Secure-authjs.session-token')?.value;
+
+  if (!token) return null;
+
   try {
-    const userId = await requireUserId();
+    const secret = new TextEncoder().encode(process.env.AUTH_SECRET || 'fallback-secret-for-build');
+    const { payload } = await jwtVerify(token, secret);
+    return (payload.id as string) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function unauthorized() {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) return unauthorized();
 
     const row = await db.query.settings.findFirst({
-      where: and(eq(settings.userId, userId), eq(settings.id, userId)),
+      where: eq(settings.userId, userId),
     });
 
     if (!row) {
@@ -27,9 +47,7 @@ export async function GET() {
       storagePath: row.storagePath,
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    console.error('Settings GET error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch settings' },
       { status: 500 }
@@ -39,13 +57,14 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const userId = await requireUserId();
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) return unauthorized();
 
     const body = await request.json();
     const { apiKey, webhookHmacKey, storagePath } = body;
 
     const existing = await db.query.settings.findFirst({
-      where: eq(settings.id, userId),
+      where: eq(settings.userId, userId),
     });
 
     if (!existing) {
@@ -72,14 +91,12 @@ export async function PUT(request: NextRequest) {
           ...(storagePath !== undefined && { storagePath }),
           updatedAt: new Date(),
         })
-        .where(eq(settings.id, userId));
+        .where(eq(settings.id, existing.id));
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    console.error('Settings PUT error:', error);
     return NextResponse.json(
       { error: 'Failed to update settings' },
       { status: 500 }
@@ -87,12 +104,13 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
-    const userId = await requireUserId();
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) return unauthorized();
 
     const existing = await db.query.settings.findFirst({
-      where: eq(settings.id, userId),
+      where: eq(settings.userId, userId),
     });
 
     if (!existing) {
@@ -105,13 +123,11 @@ export async function DELETE() {
     await db
       .update(settings)
       .set({ apiKey: '', updatedAt: new Date() })
-      .where(eq(settings.id, userId));
+      .where(eq(settings.id, existing.id));
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    console.error('Settings DELETE error:', error);
     return NextResponse.json(
       { error: 'Failed to delete API key' },
       { status: 500 }
@@ -121,7 +137,8 @@ export async function DELETE() {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await requireUserId();
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) return unauthorized();
 
     const body = await request.json();
     const { apiKey } = body;
@@ -133,31 +150,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const row = await db.query.settings.findFirst({
-      where: eq(settings.id, userId),
-    });
-
-    if (!row?.apiKey) {
-      return NextResponse.json(
-        { error: 'API key not configured' },
-        { status: 401 }
-      );
-    }
-
-    const client = new KieApiClient(row.apiKey);
+    const client = new KieApiClient(apiKey);
     const credits = await client.getCredits();
 
     return NextResponse.json({ success: true, credits });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     if (error instanceof KieApiError) {
       return NextResponse.json(
         { error: error.message },
         { status: error.code === 401 ? 401 : 500 }
       );
     }
+    console.error('Settings POST error:', error);
     return NextResponse.json(
       { error: 'Connection test failed' },
       { status: 500 }

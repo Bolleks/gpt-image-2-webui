@@ -4,15 +4,16 @@ import { settings, tasks } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { KieApiClient, KieApiError } from '@/lib/services/KieApiClient';
 import { AspectRatio, Resolution } from '@/lib/types';
-import { requireUserId } from '@/lib/auth/session';
+import { getUserIdFromRequest } from '@/lib/auth/session';
 
 const VALID_ASPECT_RATIOS: AspectRatio[] = ['auto', '1:1', '9:16', '16:9', '4:3', '3:4'];
 const VALID_RESOLUTIONS: Resolution[] = ['1K', '2K', '4K'];
 
 export async function POST(request: NextRequest) {
-  try {
-    const userId = await requireUserId();
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  try {
     const row = await db.query.settings.findFirst({
       where: eq(settings.id, userId),
     });
@@ -95,9 +96,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ taskId, status: 'waiting' });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
     if (error instanceof KieApiError) {
       const statusMap: Record<number, number> = {
         401: 401,
