@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Image,
   GalleryVertical,
@@ -12,6 +12,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Sparkles,
+  LogOut,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,19 +31,43 @@ const bottomNavItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-collapsed');
     if (saved !== null) {
       setIsCollapsed(JSON.parse(saved));
     }
+
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user?.id) {
+          setUserId(data.user.id);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const toggleCollapse = () => {
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     localStorage.setItem('sidebar-collapsed', JSON.stringify(newState));
+  };
+
+  const handleSignOut = async () => {
+    await fetch('/api/auth/signout', { method: 'POST' });
+    router.push('/auth/signin');
+    router.refresh();
+  };
+
+  const copyUserId = () => {
+    navigator.clipboard.writeText(userId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -93,6 +120,25 @@ export function AppSidebar() {
       </nav>
 
       <div className="p-2 border-t border-white/[0.08] space-y-1">
+        {userId && !isCollapsed && (
+          <div className="flex items-center gap-2 px-3 py-1.5">
+            <span className="text-[10px] text-white/30 uppercase tracking-wider">ID</span>
+            <span className="font-mono text-xs text-white/50 flex-1">{userId}</span>
+            <button onClick={copyUserId} className="text-white/30 hover:text-white/60 transition-colors">
+              {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+            </button>
+          </div>
+        )}
+        {userId && isCollapsed && (
+          <button
+            onClick={copyUserId}
+            className="flex items-center justify-center px-3 py-2 text-white/30 hover:text-white/60 transition-colors"
+            title={`ID: ${userId}`}
+          >
+            <Copy className="w-4 h-4" />
+          </button>
+        )}
+
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -114,6 +160,19 @@ export function AppSidebar() {
             </Link>
           );
         })}
+
+        <button
+          onClick={handleSignOut}
+          className={cn(
+            'flex items-center gap-3 px-3 py-2.5 rounded-xl w-full',
+            'text-white/50 hover:text-white/70 hover:bg-white/5 transition-all duration-200',
+            isCollapsed && 'justify-center'
+          )}
+          title="Выйти"
+        >
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          {!isCollapsed && <span className="text-sm">Выйти</span>}
+        </button>
 
         <button
           onClick={toggleCollapse}

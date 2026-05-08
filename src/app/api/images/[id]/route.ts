@@ -1,33 +1,34 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { tasks, settings } from '@/lib/db/schema';
+import { tasks } from '@/lib/db/schema';
+import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { ImageDownloader } from '@/lib/services/ImageDownloader';
+import { requireUserId } from '@/lib/auth/session';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: taskId } = await params;
-
   try {
+    const userId = await requireUserId();
+    const { id: taskId } = await params;
+
     const task = await db.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
     });
 
-    if (!task || !task.localPath) {
+    if (!task || !task.localPath || task.userId !== userId) {
       return NextResponse.json({ error: 'Image not found' }, { status: 404 });
     }
 
     const row = await db.query.settings.findFirst({
-      where: eq(settings.id, 'default'),
+      where: eq(settings.userId, userId),
     });
 
-    if (!row) {
-      return NextResponse.json({ error: 'Settings missing' }, { status: 500 });
-    }
+    const storagePath = row?.storagePath || '/data/images';
 
-    const downloader = new ImageDownloader(row.storagePath, {} as any);
+    const downloader = new ImageDownloader(storagePath, {} as any);
 
     if (!downloader.fileExists(task.localPath)) {
       return NextResponse.json(

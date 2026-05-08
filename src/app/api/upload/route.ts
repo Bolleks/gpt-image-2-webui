@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { requireUserId } from '@/lib/auth/session';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
@@ -9,8 +10,10 @@ const MAX_FILES = 3;
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await requireUserId();
+
     const row = await db.query.settings.findFirst({
-      where: eq(settings.id, 'default'),
+      where: eq(settings.id, userId),
     });
 
     if (!row?.apiKey) {
@@ -96,6 +99,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ urls });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Upload error:', error);
     return NextResponse.json(
       { error: 'Upload failed, please try again' },

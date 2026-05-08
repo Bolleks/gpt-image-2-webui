@@ -8,8 +8,24 @@ import { WebhookVerifier } from '@/lib/services/WebhookVerifier';
 
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
+    const taskId = body.data?.task_id || body.taskId;
+    const code = body.code;
+
+    if (!taskId) {
+      return NextResponse.json({ error: 'Missing task_id' }, { status: 400 });
+    }
+
+    const task = await db.query.tasks.findFirst({
+      where: eq(tasks.id, taskId),
+    });
+
+    if (!task) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
     const row = await db.query.settings.findFirst({
-      where: eq(settings.id, 'default'),
+      where: eq(settings.userId, task.userId),
     });
 
     if (!row) {
@@ -32,9 +48,6 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const body = await request.json();
-      const taskId = body.data?.task_id || body.taskId;
-
       if (taskId) {
         const isValid = verifier.verify(taskId, timestamp, receivedSignature);
         if (!isValid) {
@@ -44,14 +57,6 @@ export async function POST(request: NextRequest) {
           );
         }
       }
-    }
-
-    const body = await request.json();
-    const taskId = body.data?.task_id || body.taskId;
-    const code = body.code;
-
-    if (!taskId) {
-      return NextResponse.json({ error: 'Missing task_id' }, { status: 400 });
     }
 
     const kieClient = new KieApiClient(row.apiKey);

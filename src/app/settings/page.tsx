@@ -6,6 +6,7 @@ import { useCredits } from '@/hooks/useCredits';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Copy, Check } from 'lucide-react';
 
 export default function SettingsPage() {
   const [apiKey, setApiKey] = useState('');
@@ -13,6 +14,8 @@ export default function SettingsPage() {
   const [storagePath, setStoragePath] = useState('/data/images');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [copied, setCopied] = useState(false);
   const { credits } = useCredits();
 
   useEffect(() => {
@@ -22,6 +25,13 @@ export default function SettingsPage() {
         if (data.apiKey) setApiKey(data.apiKey);
         if (data.webhookHmacKey) setWebhookHmacKey(data.webhookHmacKey);
         setStoragePath(data.storagePath ?? '/data/images');
+      })
+      .catch(() => {});
+
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user?.id) setUserId(data.user.id);
       })
       .catch(() => {});
   }, []);
@@ -81,11 +91,33 @@ export default function SettingsPage() {
     }
   };
 
+  const copyUserId = () => {
+    navigator.clipboard.writeText(userId);
+    setCopied(true);
+    toast.success('ID скопирован');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <h1 className="text-3xl font-extrabold tracking-tight gradient-text">
         Настройки
       </h1>
+
+      {userId && (
+        <div className="glass-card-sm p-4 flex items-center gap-3">
+          <div>
+            <p className="text-xs text-white/40">Ваш ID (для поддержки)</p>
+            <p className="font-mono text-sm text-white/70">{userId}</p>
+          </div>
+          <button
+            onClick={copyUserId}
+            className="ml-auto p-2 rounded-lg hover:bg-white/10 transition-colors"
+          >
+            {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-white/40" />}
+          </button>
+        </div>
+      )}
 
       <div className="glass-card p-6 space-y-6">
         <ApiKeyInput

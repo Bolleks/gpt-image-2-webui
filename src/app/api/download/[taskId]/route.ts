@@ -4,6 +4,7 @@ import { settings, tasks } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { KieApiClient } from '@/lib/services/KieApiClient';
 import { ImageDownloader } from '@/lib/services/ImageDownloader';
+import { requireUserId } from '@/lib/auth/session';
 
 export async function GET(
   _request: Request,
@@ -12,23 +13,23 @@ export async function GET(
   const { taskId } = await params;
 
   try {
+    const userId = await requireUserId();
+
     const task = await db.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
     });
 
-    if (!task || !task.localPath) {
+    if (!task || !task.localPath || task.userId !== userId) {
       return NextResponse.json({ error: 'Image not found' }, { status: 404 });
     }
 
     const row = await db.query.settings.findFirst({
-      where: eq(settings.id, 'default'),
+      where: eq(settings.userId, userId),
     });
 
-    if (!row) {
-      return NextResponse.json({ error: 'Settings missing' }, { status: 500 });
-    }
+    const storagePath = row?.storagePath || '/data/images';
 
-    const downloader = new ImageDownloader(row.storagePath, {} as any);
+    const downloader = new ImageDownloader(storagePath, {} as any);
 
     if (!downloader.fileExists(task.localPath)) {
       return NextResponse.json({ error: 'File not found on disk' }, { status: 404 });
@@ -56,11 +57,13 @@ export async function POST(
   const { taskId } = await params;
 
   try {
+    const userId = await requireUserId();
+
     const row = await db.query.settings.findFirst({
-      where: eq(settings.id, 'default'),
+      where: eq(settings.userId, userId),
     });
 
-    if (!row) {
+    if (!row?.apiKey) {
       return NextResponse.json(
         { error: 'Settings not configured' },
         { status: 500 }
@@ -71,7 +74,7 @@ export async function POST(
       where: eq(tasks.id, taskId),
     });
 
-    if (!task) {
+    if (!task || task.userId !== userId) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 

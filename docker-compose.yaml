@@ -12,6 +12,8 @@ services:
       - HOSTNAME=0.0.0.0
       - DATABASE_URL=file:/data/app.db
       - STORAGE_PATH=/data/images
+      - AUTH_URL=${AUTH_URL:-}
+      - AUTH_SECRET=${AUTH_SECRET:-CHANGE_ME_GENERATE_WITH_OPENSSL_RAND_BASE64_32}
     volumes:
       - app-data:/data
     healthcheck:

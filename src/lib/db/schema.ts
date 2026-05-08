@@ -1,7 +1,16 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
+export const users = sqliteTable('users', {
+  id: text('id').primaryKey(),
+  seedPhraseHash: text('seed_phrase_hash').notNull().unique(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const settings = sqliteTable('settings', {
-  id: text('id').primaryKey().default('default'),
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
   apiKey: text('api_key').notNull(),
   webhookHmacKey: text('webhook_hmac_key'),
   storagePath: text('storage_path').notNull().default('/data/images'),
@@ -12,13 +21,14 @@ export const settings = sqliteTable('settings', {
 
 export const tasks = sqliteTable('tasks', {
   id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
   prompt: text('prompt').notNull(),
   aspectRatio: text('aspect_ratio').notNull(),
   resolution: text('resolution').notNull(),
   status: text('status').notNull().default('waiting'),
   resultUrl: text('result_url'),
   localPath: text('local_path'),
-  inputUrls: text('input_urls'), // JSON array of URLs, nullable
+  inputUrls: text('input_urls'),
   failCode: text('fail_code'),
   failMsg: text('fail_msg'),
   costTime: integer('cost_time'),
@@ -33,6 +43,7 @@ export const tasks = sqliteTable('tasks', {
 
 export const prompts = sqliteTable('prompts', {
   id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
   title: text('title').notNull(),
   content: text('content').notNull(),
   category: text('category').notNull().default(''),

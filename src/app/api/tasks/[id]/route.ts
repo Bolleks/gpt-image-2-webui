@@ -1,19 +1,21 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { settings, tasks } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { KieApiClient } from '@/lib/services/KieApiClient';
+import { requireUserId } from '@/lib/auth/session';
 import fs from 'fs';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: taskId } = await params;
-
   try {
+    const userId = await requireUserId();
+    const { id: taskId } = await params;
+
     const task = await db.query.tasks.findFirst({
-      where: eq(tasks.id, taskId),
+      where: and(eq(tasks.id, taskId), eq(tasks.userId, userId)),
     });
 
     if (!task) {
@@ -34,7 +36,7 @@ export async function GET(
     }
 
     const row = await db.query.settings.findFirst({
-      where: eq(settings.id, 'default'),
+      where: eq(settings.id, userId),
     });
 
     if (!row) {
@@ -95,7 +97,7 @@ export async function GET(
             ? new Date()
             : undefined,
       })
-      .where(eq(tasks.id, taskId));
+      .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
 
     return NextResponse.json({
       taskId,
@@ -109,6 +111,9 @@ export async function GET(
       costTime: details.costTime || null,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json(
       { error: 'Failed to fetch task status' },
       { status: 500 }
@@ -120,11 +125,12 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: taskId } = await params;
-
   try {
+    const userId = await requireUserId();
+    const { id: taskId } = await params;
+
     const task = await db.query.tasks.findFirst({
-      where: eq(tasks.id, taskId),
+      where: and(eq(tasks.id, taskId), eq(tasks.userId, userId)),
     });
 
     if (!task) {
@@ -141,10 +147,13 @@ export async function DELETE(
       }
     }
 
-    await db.delete(tasks).where(eq(tasks.id, taskId));
+    await db.delete(tasks).where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json(
       { error: 'Failed to delete task' },
       { status: 500 }

@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { tasks } from '@/lib/db/schema';
-import { desc } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
+import { requireUserId } from '@/lib/auth/session';
 
 export async function GET() {
   try {
+    const userId = await requireUserId();
+
     const allTasks = await db.query.tasks.findMany({
+      where: eq(tasks.userId, userId),
       orderBy: desc(tasks.createdAt),
     });
 
@@ -25,6 +29,9 @@ export async function GET() {
       })),
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json(
       { error: 'Failed to fetch tasks' },
       { status: 500 }
