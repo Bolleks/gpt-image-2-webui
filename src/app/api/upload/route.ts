@@ -76,15 +76,22 @@ export async function POST(request: NextRequest) {
       }
 
       const kieData = await kieResponse.json();
+      console.log('KIE upload response:', JSON.stringify(kieData));
 
-      if (!kieData?.data?.fileUrl) {
+      const fileUrl = kieData?.data?.fileUrl
+        ?? kieData?.data?.url
+        ?? kieData?.data?.downloadUrl
+        ?? (typeof kieData?.data === 'string' ? kieData.data : null);
+
+      if (!fileUrl) {
+        console.error('KIE upload: could not find file URL in response:', kieData);
         return NextResponse.json(
-          { error: 'Invalid response from KIE upload' },
+          { error: 'Invalid response from KIE upload', details: kieData },
           { status: 502 }
         );
       }
 
-      urls.push(kieData.data.fileUrl);
+      urls.push(fileUrl);
     }
 
     return NextResponse.json({ urls });
