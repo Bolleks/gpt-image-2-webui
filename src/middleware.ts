@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
-
-const SECRET = () => new TextEncoder().encode(process.env.AUTH_SECRET || 'fallback-secret-for-build');
 
 const publicPaths = [
   '/auth/signin',
@@ -12,7 +9,7 @@ const publicPaths = [
   '/api/webhook',
 ];
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (publicPaths.some((p) => pathname.startsWith(p))) {
@@ -23,15 +20,6 @@ export async function middleware(request: NextRequest) {
     ?? request.cookies.get('__Secure-authjs.session-token')?.value;
 
   if (!token) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    return NextResponse.redirect(new URL('/auth/signin', request.url));
-  }
-
-  try {
-    await jwtVerify(token, SECRET());
-  } catch {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

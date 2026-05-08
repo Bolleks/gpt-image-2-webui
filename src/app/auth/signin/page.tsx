@@ -3,12 +3,19 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function SignInPage() {
   const [seedPhrase, setSeedPhrase] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/auth/session').then(r => r.json()).then(data => {
+      if (data?.user) router.push('/');
+    }).catch(() => {});
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

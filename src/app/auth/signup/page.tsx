@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -13,6 +13,12 @@ export default function SignUpPage() {
   const [error, setError] = useState('');
   const [signInLoading, setSignInLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/auth/session').then(r => r.json()).then(data => {
+      if (data?.user) router.push('/');
+    }).catch(() => {});
+  }, [router]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
