@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { tasks } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
-import { getUserIdFromRequest } from '@/lib/auth/session';
+import { auth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
-  const userId = await getUserIdFromRequest(request);
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const userId = session.user.id;
 
   try {
     const allTasks = await db.query.tasks.findMany({

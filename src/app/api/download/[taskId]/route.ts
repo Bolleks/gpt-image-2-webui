@@ -4,14 +4,17 @@ import { settings, tasks } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { KieApiClient } from '@/lib/services/KieApiClient';
 import { ImageDownloader } from '@/lib/services/ImageDownloader';
-import { getUserIdFromRequest } from '@/lib/auth/session';
+import { auth } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ taskId: string }> }
 ) {
-  const userId = await getUserIdFromRequest(request);
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const userId = session.user.id;
 
   const { taskId } = await params;
 
@@ -55,8 +58,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ taskId: string }> }
 ) {
-  const userId = await getUserIdFromRequest(request);
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const userId = session.user.id;
 
   const { taskId } = await params;
 

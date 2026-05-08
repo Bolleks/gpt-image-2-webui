@@ -1,33 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { KieApiClient, KieApiError } from '@/lib/services/KieApiClient';
-import { jwtVerify } from 'jose';
-
-async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
-  const token = request.cookies.get('authjs.session-token')?.value
-    ?? request.cookies.get('__Secure-authjs.session-token')?.value;
-
-  if (!token) return null;
-
-  try {
-    const secret = new TextEncoder().encode(process.env.AUTH_SECRET || 'fallback-secret-for-build');
-    const { payload } = await jwtVerify(token, secret);
-    return (payload.id as string) ?? null;
-  } catch {
-    return null;
-  }
-}
 
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) return unauthorized();
+    const session = await auth();
+    if (!session?.user?.id) return unauthorized();
+    const userId = session.user.id;
 
     const row = await db.query.settings.findFirst({
       where: eq(settings.userId, userId),
@@ -57,8 +43,9 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) return unauthorized();
+    const session = await auth();
+    if (!session?.user?.id) return unauthorized();
+    const userId = session.user.id;
 
     const body = await request.json();
     const { apiKey, webhookHmacKey, storagePath } = body;
@@ -104,10 +91,11 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) return unauthorized();
+    const session = await auth();
+    if (!session?.user?.id) return unauthorized();
+    const userId = session.user.id;
 
     const existing = await db.query.settings.findFirst({
       where: eq(settings.userId, userId),
@@ -137,8 +125,8 @@ export async function DELETE(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) return unauthorized();
+    const session = await auth();
+    if (!session?.user?.id) return unauthorized();
 
     const body = await request.json();
     const { apiKey } = body;

@@ -4,14 +4,17 @@ import { tasks } from '@/lib/db/schema';
 import { settings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { ImageDownloader } from '@/lib/services/ImageDownloader';
-import { getUserIdFromRequest } from '@/lib/auth/session';
+import { auth } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const userId = await getUserIdFromRequest(request);
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const userId = session.user.id;
 
   try {
     const { id: taskId } = await params;

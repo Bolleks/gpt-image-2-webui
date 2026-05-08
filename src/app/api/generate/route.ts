@@ -4,14 +4,17 @@ import { settings, tasks } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { KieApiClient, KieApiError } from '@/lib/services/KieApiClient';
 import { AspectRatio, Resolution } from '@/lib/types';
-import { getUserIdFromRequest } from '@/lib/auth/session';
+import { auth } from '@/lib/auth';
 
 const VALID_ASPECT_RATIOS: AspectRatio[] = ['auto', '1:1', '9:16', '16:9', '4:3', '3:4'];
 const VALID_RESOLUTIONS: Resolution[] = ['1K', '2K', '4K'];
 
 export async function POST(request: NextRequest) {
-  const userId = await getUserIdFromRequest(request);
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const userId = session.user.id;
 
   try {
     const row = await db.query.settings.findFirst({
