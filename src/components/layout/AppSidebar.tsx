@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import {
   Image,
   GalleryVertical,
@@ -59,9 +60,7 @@ export function AppSidebar() {
   };
 
   const handleSignOut = async () => {
-    await fetch('/api/auth/signout', { method: 'POST' });
-    router.push('/auth/signin');
-    router.refresh();
+    await signOut({ callbackUrl: '/auth/signin' });
   };
 
   const copyUserId = () => {
