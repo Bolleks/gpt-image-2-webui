@@ -19,6 +19,8 @@ interface GalleryImage {
   imageUrl: string;
 }
 
+const PAGE_SIZE = 12;
+
 export default function GalleryPage() {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [search, setSearch] = useState('');
@@ -26,6 +28,7 @@ export default function GalleryPage() {
   const [filterResolution, setFilterResolution] = useState('');
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   const router = useRouter();
 
@@ -86,6 +89,8 @@ export default function GalleryPage() {
     }
   };
 
+  useEffect(() => { setPage(1); }, [search, filterAspectRatio, filterResolution]);
+
   const filtered = images.filter((img) => {
     if (search && !img.prompt.toLowerCase().includes(search.toLowerCase())) {
       return false;
@@ -94,6 +99,9 @@ export default function GalleryPage() {
     if (filterResolution && img.resolution !== filterResolution) return false;
     return true;
   });
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -120,7 +128,30 @@ export default function GalleryPage() {
           ))}
         </div>
       ) : (
-        <MasonryGrid images={filtered} onImageClick={setSelectedImage} />
+        <>
+          <MasonryGrid images={paged} onImageClick={setSelectedImage} />
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 pt-4">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="glass-card-sm px-3 py-1.5 rounded-lg text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/10 transition-colors"
+              >
+                ←
+              </button>
+              <span className="text-white/50 text-sm">
+                {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="glass-card-sm px-3 py-1.5 rounded-lg text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/10 transition-colors"
+              >
+                →
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       <ImageModal
