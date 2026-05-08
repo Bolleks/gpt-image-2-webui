@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 export default function SignInPage() {
@@ -15,25 +16,17 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/callback/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          seedPhrase: seedPhrase.trim(),
-          callbackUrl: '/',
-          json: 'true',
-        }),
+      const result = await signIn('credentials', {
+        seedPhrase: seedPhrase.trim(),
+        redirect: false,
       });
 
-      const data = await res.json();
-
-      if (data.error) {
+      if (result?.error) {
         setError('Неверная seed-фраза');
-        return;
+      } else {
+        router.push('/');
+        router.refresh();
       }
-
-      router.push(data.url || '/');
-      router.refresh();
     } catch {
       setError('Ошибка входа');
     } finally {

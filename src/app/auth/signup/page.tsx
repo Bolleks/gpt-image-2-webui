@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 export default function SignUpPage() {
@@ -10,6 +11,7 @@ export default function SignUpPage() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [signInLoading, setSignInLoading] = useState(false);
   const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -43,21 +45,21 @@ export default function SignUpPage() {
   };
 
   const handleContinue = async () => {
-    const res = await fetch('/api/auth/callback/credentials', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
+    setSignInLoading(true);
+    try {
+      const result = await signIn('credentials', {
         seedPhrase,
-        callbackUrl: '/',
-        json: 'true',
-      }),
-    });
+        redirect: false,
+      });
 
-    const data = await res.json();
-
-    if (!data.error) {
-      router.push(data.url || '/');
-      router.refresh();
+      if (!result?.error) {
+        router.push('/');
+        router.refresh();
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setSignInLoading(false);
     }
   };
 
@@ -100,9 +102,10 @@ export default function SignUpPage() {
 
           <button
             onClick={handleContinue}
-            className="w-full gradient-bg text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity"
+            disabled={signInLoading}
+            className="w-full gradient-bg text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            Я сохранил — продолжить
+            {signInLoading ? 'Вход...' : 'Я сохранил — продолжить'}
           </button>
         </div>
       </div>
